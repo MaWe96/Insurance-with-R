@@ -1,0 +1,78 @@
+---
+title: "Insurance with R"
+output: "html_document"
+---
+
+# 1. Dataförståelse
+**Läs in data:**
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+df <- read_csv("insurance_costs.csv")
+```
+```{r}
+glimpse(df)
+```
+Det är 1,100 observationer med 14 variabler, och datatyperna ska justeras:
+
+* heltal, decimaltal, booleans och strängar.
+* det kan behövas filtrering eller ifyllnad, samt trim, lower, och title.
+
+**Se närmare på kolumner med saknade värden:**
+```{r}
+# Antal NA per kolumn:
+# colSums(is.na(df)) 
+#     anger att: bmi, exercise_level, annual_checkups har NaN.
+
+# Se över unique values i olika kolumner:
+# unique(df$exercise_level)
+unique(df$plan_type)
+```
+# 2. Datastädning och förberedelse
+**Åtgärder i städning:**
+
+- Kundnummer görs till heltal genom att först ta bort "C".
+- Vid NaN: BMI och årliga besök får median insatt, träningsnivå får "Unknown".
+- Gör "Ja/Nej" till logisk.
+```{r}
+source("script1_cleaning.R")
+```
+**Nya variabler och konvertera _chr_ till _fct_:**
+Skapa kolumner med _if_else_ och _case_when_ som följer kriterier, så fås olika grupper. Även _historic_score_ via addition av tidigare olyckor samt fordringar.
+
+Det görs även en lista med kategoriska kolumner (som är städade redan), sen en funktion som sätter _as.factor_, sen kallas den och skriver över resultatet till _df_clean_.
+```{r}
+# Summary visar vanliga värden, så kan man välja numeriska gränser i kategori variabler.
+# summary(df_clean$bmi)  
+source("script2_createVar_andFactor.R")
+glimpse(df_clean)
+```
+Nu har vi factor som datatyp för kategorier, så _dplyr_ hanterar grupperingar väl.
+
+# 3. Beskrivande analys
+
+
+# 4. Regressionsanalys
+
+# 5. Slutsatser
+
+# 6. Självreflektion
+*Hör hemma i text rapporten.*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
