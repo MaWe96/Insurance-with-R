@@ -3,9 +3,10 @@ title: "Insurance with R"
 output: "html_document"
 ---
 
-# 1. Dataförståelse
+## 1. Dataförståelse
 **Läs in data:**
 ```{r, message=FALSE, warning=FALSE}
+# message och warning=FALSE, så undviks output av följande:
 library(tidyverse)
 df <- read_csv("insurance_costs.csv")
 ```
@@ -24,10 +25,10 @@ Det är 1,100 observationer med 14 variabler, och datatyperna ska justeras:
 #     anger att: bmi, exercise_level, annual_checkups har NaN.
 
 # Se över unique values i olika kolumner:
-# unique(df$exercise_level)
+# count(df$exercise_level)
 unique(df$plan_type)
 ```
-# 2. Datastädning och förberedelse
+## 2. Datastädning och förberedelse
 **Åtgärder i städning:**
 
 - Kundnummer görs till heltal genom att först ta bort "C".
@@ -37,9 +38,9 @@ unique(df$plan_type)
 source("script1_cleaning.R")
 ```
 **Nya variabler och konvertera _chr_ till _fct_:**
-Skapa kolumner med _if_else_ och _case_when_ som följer kriterier, så fås olika grupper. Även _historic_score_ via addition av tidigare olyckor samt fordringar.
 
-Det görs även en lista med kategoriska kolumner (som är städade redan), sen en funktion som sätter _as.factor_, sen kallas den och skriver över resultatet till _df_clean_.
+- Skapa kolumner med _if_else_ och _case_when_ som följer kriterier, så fås olika grupper. Även `historic_score` via addition av tidigare olyckor samt fordringar.
+- Det görs även en lista med kategoriska kolumner (som är städade redan), sen en funktion som sätter _as.factor_, sen kallas den och skriver över resultatet till `df_clean`.
 ```{r}
 # Summary visar vanliga värden, så kan man välja numeriska gränser i kategori variabler.
 # summary(df_clean$bmi)  
@@ -48,18 +49,104 @@ glimpse(df_clean)
 ```
 Nu har vi factor som datatyp för kategorier, så _dplyr_ hanterar grupperingar väl.
 
-# 3. Beskrivande analys
+De nya variablerna `bmi_class`, `historic_score`, `risk_level`, `age_group`, `exercise_checks` ger regressionsmodellering yta att undersöka om olika profiler är kopplade till större betalning. 
 
 
-# 4. Regressionsanalys
+## 3. Beskrivande analys
+### 3.1 Betalning bland åldergrupper
+```{r}
+# Ladda script 3 och visa output för åldergrupper
+source("script3_descriptive_analysis.R")
+age_grouped # stigande ordning: medelvärde.
+```
+De flesta är inte äldre än 60 eller yngre än 20. Även syns att betalningar ökar i snitt och median med ålder.
 
-# 5. Slutsatser
+### 3.2 Betalning bland bmi-kategori
+```{r}
+bmi_grouped # stigande (mean)
+```
+De med mer än 30.5 och mindre än 16 i bmi betalar mer och mindre, respektivt, än normal- och överviktiga. En föraning är att kostnader har större skillnader för de två mitten bmi-klasserna (och ålder) med ursprung i andra led. Övergripande stiger kostnader med bmi-klass.
 
-# 6. Självreflektion
-*Hör hemma i text rapporten.*
+### 3.3 Betalning inom rökning
+```{r}
+smoker_grouped # fallande (mean)
+```
+Rökare betalar det dubbla, medan de motsvarar 18.5%.
+
+### 3.4 Betalning bland rökare och kroniska
+```{r}
+smoker_chronic # fallande (proportion)
+```
+Medan nästan 63% varken är kroniska eller rökare, indikeras stigande kostnader (medel) för drabbade från cirka 7500 till 19200.
+
+
+### 3.5 Visualer
+
+```{r}
+source("script4_visuals.R")
+# åldersgrupp col plot
+ageplot
+```
+
+Betalning tycks öka med åldersgrupp, särskilt när senior.
+
+```{r}
+# bmi-klasser col plot
+bmiplot
+```
+
+Betalning tycks öka med bmi-klass, men de två i mitten betalar nästan lika.
+
+```{r}
+# true/false col plot
+smoke_chron_plot
+```
+
+Bland rökare, betalar kroniska mera, samma gäller icke-rökare. Samtidigt är rökande status led till högre betalning också. Är profilen ej rökande eller kronisk så betalar denna ungefär hälften eller en tredjedel av de andra profilerna.
+
+I helhet tycks ålder eller vikt inte driva skillnader i betalning mest, utan övriga faktorer såsom rökare och kroniska, där differenser i pris är framstående. Vad som antyds är att rökning kanske är en kritisk risk som bör rättfärdiga en högre försäkringskostnad; denna och övriga faktorer gås igenom i regressionsanalysen.
 
 
 
+
+## 4. Regressionsanalys
+
+Vilka features som leder mest till prissättningarna ska nu fokuseras på. I initiell analys syntes liknelser och skillnader emellan profiler, men helheten i sambanden är inte klarlagt. Är det så att risker går upp i steg som från vuxen till senior, eller numeriskt (kontinuerligt); jämförelse av olikt designade regressionsmodeller följer, efter ett inledande hypotestest.
+
+### 4.1 Hypotestest
+
+Om binära variabler har stor påverkan på pris var för sig, så kan p-värde och konfidensintervall indikera viktigheten i tvåsticksprov Welch t-test. ANOVA hanterar ickebinära och görs inte i detta arbetet. T-testets isolerande prövning blir uppföljt av multipel regression efteråt vilket fångar variablernas samspel.
+```{r} 
+# Välj rökare, kroniska, hälsovanor och risknivå-variablerna, då de kan vara hälsokritiska.
+
+t_test_smoker <- t.test(charges ~ smoker, data = df_clean)
+t_test_chronic <- t.test(charges ~ chronic_condition, data = df_clean)
+t_test_exerciseschecks <- t.test(charges ~ exercises_checks, data = df_clean)
+t_test_risklevel <- t.test(charges ~ risk_level, data = df_clean)
+
+# t_test_smoker
+# t_test_chronic
+# t_test_exerciseschecks
+t_test_risklevel
+```
+**t-test resultat:**
+
+| Variabel        | 95% konfidensintervall      | Effekt   |
+|-------------------|-----------------|---------|
+| `smoker`              | (-8514, -7387) | Rökare betalar mer |
+| `chronic_condition`   | (-5231, -4057) | Kroniskt drabbade betalar mer |
+| `exercises_checks`  | (-2141, -893)  | Mindre hälsosamma betalar mer |
+| `risk_level`          | (4801, 5654)   | Högriskkunder betalar mer |
+
+Notera att ordningen på true och false orsakar minustecknet, medan effekten beskriver ordningen. Siffran noll var inte med i konfidensintervallen, och så var _p_ < 0.001 i alla granskningar, alltså statistiskt signifikant. 
+
+Framträdelsevis är `smoker` den status som leder till störst betalningsskillnad, sett i magnituden av intervallet. Sen följer av kronisk, risknivå (vilken består av bl.a. rökare och kronisk) och sist hälsovanor. Hälsovanor kan tolkas vara kompletterande för hälsan, medan status av rökning och kronisk har större avgörande (och därmed borde tas med i regressionen).
+
+
+### 4.2 Modellering
+```{r}
+source("script4_regression.R") # TO DO
+```
 
 
 
