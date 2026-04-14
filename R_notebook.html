@@ -537,11 +537,11 @@ jämförelse av olikt designade regressionsmodeller följer, efter ett
 inledande hypotestest.</p>
 <div id="hypotestest" class="section level3">
 <h3>4.1 Hypotestest</h3>
-<p>Om binära variabler har stor påverkan på pris var för sig, så kan
-p-värde och konfidensintervall indikera viktigheten i tvåsticksprov
-Welch t-test. ANOVA hanterar ickebinära och görs inte i detta arbetet.
-T-testets isolerande prövning blir uppföljt av multipel regression
-efteråt vilket fångar variablernas samspel.</p>
+<p>Om binära och numeriska variabler har stor påverkan på pris var för
+sig, så kan p-värde och konfidensintervall indikera viktigheten i
+tvåsticksprov Welch t-test. ANOVA hanterar ickebinära och görs inte i
+detta arbetet. T-testets isolerande prövning blir uppföljt av multipel
+regression efteråt vilket fångar variablernas samspel.</p>
 <pre class="r"><code># Välj rökare, kroniska, hälsovanor och risknivå-variablerna, då de kan vara hälsokritiska.
 
 t_test_smoker &lt;- t.test(charges ~ smoker, data = df_clean)
@@ -549,31 +549,33 @@ t_test_chronic &lt;- t.test(charges ~ chronic_condition, data = df_clean)
 t_test_exerciseschecks &lt;- t.test(charges ~ exercises_checks, data = df_clean)
 t_test_risklevel &lt;- t.test(charges ~ risk_level, data = df_clean)
 
-# t_test_smoker
-# t_test_chronic
-# t_test_exerciseschecks
-t_test_risklevel</code></pre>
+t_test_smoker</code></pre>
 <pre><code>## 
 ##  Welch Two Sample t-test
 ## 
-## data:  charges by risk_level
-## t = 24.068, df = 954.09, p-value &lt; 2.2e-16
-## alternative hypothesis: true difference in means between group High and group Low is not equal to 0
+## data:  charges by smoker
+## t = -27.771, df = 276.46, p-value &lt; 2.2e-16
+## alternative hypothesis: true difference in means between group FALSE and group TRUE is not equal to 0
 ## 95 percent confidence interval:
-##  4801.959 5654.549
+##  -8514.891 -7387.624
 ## sample estimates:
-## mean in group High  mean in group Low 
-##          12446.471           7218.217</code></pre>
+## mean in group FALSE  mean in group TRUE 
+##            8585.889           16537.147</code></pre>
+<pre class="r"><code># t_test_chronic
+# t_test_exerciseschecks
+# t_test_risklevel</code></pre>
 <p><strong>t-test resultat:</strong></p>
 <table>
 <colgroup>
-<col width="42%" />
-<col width="37%" />
-<col width="20%" />
+<col width="39%" />
+<col width="12%" />
+<col width="29%" />
+<col width="18%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Variabel</th>
+<th>t-värde</th>
 <th>95% konfidensintervall</th>
 <th>Effekt</th>
 </tr>
@@ -581,21 +583,25 @@ t_test_risklevel</code></pre>
 <tbody>
 <tr class="odd">
 <td><code>smoker</code></td>
+<td>-27.7</td>
 <td>(-8514, -7387)</td>
 <td>Rökare betalar mer</td>
 </tr>
 <tr class="even">
 <td><code>chronic_condition</code></td>
+<td>-15.5</td>
 <td>(-5231, -4057)</td>
 <td>Kroniskt drabbade betalar mer</td>
 </tr>
 <tr class="odd">
 <td><code>exercises_checks</code></td>
+<td>-4.8</td>
 <td>(-2141, -893)</td>
 <td>Mindre hälsosamma betalar mer</td>
 </tr>
 <tr class="even">
 <td><code>risk_level</code></td>
+<td>24.1</td>
 <td>(4801, 5654)</td>
 <td>Högriskkunder betalar mer</td>
 </tr>
@@ -614,7 +620,95 @@ borde tas med i regressionen).</p>
 </div>
 <div id="modellering" class="section level3">
 <h3>4.2 Modellering</h3>
-<pre class="r"><code>source(&quot;script4_regression.R&quot;) # TO DO</code></pre>
+<p>Vi gör två modeller (en med orginella variabler och en med anpassade)
+och undersöker resultaten om pris följer räta förhållanden. Variabeln
+<code>risk_level</code> är gjord med bmi, rök- och kronisk-status, så
+den tas inte med för multikolineäritet riskerar skeva resultaten.</p>
+<pre class="r"><code>source(&quot;script5_regression.R&quot;) # TO DO -- ELLER SKIP !</code></pre>
+<pre class="r"><code># Modell 1, med age, bmi, smoker och kronisk.
+model1 &lt;- lm(charges ~ age + bmi + smoker + chronic_condition, data = df_clean)
+summary(model1)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = charges ~ age + bmi + smoker + chronic_condition, 
+##     data = df_clean)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -10052.0  -1649.1   -117.3   1571.5  17803.5 
+## 
+## Coefficients:
+##                       Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)           -129.059    533.197  -0.242    0.809    
+## age                     75.919      6.254  12.140   &lt;2e-16 ***
+## bmi                    164.978     17.013   9.697   &lt;2e-16 ***
+## smokerTRUE            7747.191    198.193  39.089   &lt;2e-16 ***
+## chronic_conditionTRUE 4100.990    180.041  22.778   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 2550 on 1095 degrees of freedom
+## Multiple R-squared:  0.6904, Adjusted R-squared:  0.6893 
+## F-statistic: 610.5 on 4 and 1095 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Modell 1 har <span class="math inline">\(R^2\)</span> á 69%,
+<em>p</em> &lt; 0.001, och residual standardfel: 2550. De fyra
+koefficienterna har <em>p</em> &lt; 0.001.</p>
+<p>En negativ intercept när features sätts till noll (modell 1) beror på
+matematiskt fungerande, rimliga datapunkter för prediktioner t.ex bmi
+&gt; 0 är antaget.</p>
+<pre class="r"><code># Modell 2, med skapta variabler (ej risk_level)
+model2 &lt;- lm(charges ~ age_group + bmi_class + plan_type +
+               historic_score + exercises_checks, data = df_clean)
+summary(model2)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = charges ~ age_group + bmi_class + plan_type + historic_score + 
+##     exercises_checks, data = df_clean)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -10149.2  -2899.2   -992.8   2232.7  22841.2 
+## 
+## Coefficients:
+##                              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)                    5875.3      746.9   7.866 8.79e-15 ***
+## age_groupMiddle Age            1894.3      657.6   2.881 0.004046 ** 
+## age_groupSenior                3706.2      761.1   4.870 1.28e-06 ***
+## age_groupYoung Adult            557.9      662.8   0.842 0.400129    
+## bmi_classObese                 1193.2      368.6   3.237 0.001245 ** 
+## bmi_classOverweight             274.8      352.4   0.780 0.435738    
+## bmi_classUnderweight           -653.5      375.7  -1.740 0.082229 .  
+## plan_typePremium               1935.7      369.9   5.232 2.01e-07 ***
+## plan_typeStandard              1018.2      288.4   3.530 0.000433 ***
+## historic_score                 1467.1      158.0   9.288  &lt; 2e-16 ***
+## exercises_checksLess Healthy   1073.5      330.0   3.253 0.001176 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 4171 on 1089 degrees of freedom
+## Multiple R-squared:  0.1764, Adjusted R-squared:  0.1688 
+## F-statistic: 23.32 on 10 and 1089 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Modell 2 har lägre <span class="math inline">\(R^2\)</span> á 16.9%,
+<em>p</em> &lt; 0.001, och högre residual standardfel: 4171, sämre
+predikerandes. Senior, intercept, historik, premium samt standard plan
+har <em>p</em> &lt; 0.001.</p>
+<p>Mindre förklarad varians hos den andra modellen föreslår att
+kategoriserande får precision att tappa, medan förklarbarhet med
+kategorier ökar i affärsnära nyttjande (och betalningsplan har i
+verklighet prisskillnader). Hur gränserna är dragna vid
+kategoriskapandet är avgörande, de var improviserade och osannolikt
+optimala, vilket regressionen framhäver. Segment kan bära fördel i
+affärsliv, men dessa kontinuerliga variabler ledde inte till en mer
+precis statistisk modell.</p>
+<pre class="r"><code># Specifika värden  -- TA BORT
+r2_m1 &lt;- round(summary(model1)$adj.r.squared, 3)
+r2_m2 &lt;- round(summary(model2)$adj.r.squared, 3)
+# rownames(summary(model2)$coefficients)
+# smoker_coef &lt;- round(summary(model2)$coefficients[&quot;smokerTRUE&quot;, &quot;Estimate&quot;], 2)
+# smoker_coef
+# r2_m1
+# r2_m2</code></pre>
+<pre class="r"><code>#           GÖRA REG GRAF.. + RESIDUALPLOT??</code></pre>
 </div>
 </div>
 

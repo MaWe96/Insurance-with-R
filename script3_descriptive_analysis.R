@@ -21,6 +21,7 @@ bmi_grouped <- df_clean %>%
   summarise(
     mean_charge = round(mean(charges),2),
     median_charge = round(median(charges),2),
+    std_charge = sd(charges),
     n = n(),
     .groups = "drop"
   ) %>% 
@@ -56,6 +57,7 @@ smoker_chronic <- df_clean %>%
   summarise(
     mean_charge = mean(charges),
     median_charge = median(charges),
+    std_charge = sd(charges),
     n = n(),
     .groups = "drop"
   ) %>% 

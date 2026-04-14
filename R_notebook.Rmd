@@ -32,7 +32,7 @@ unique(df$plan_type)
 **Åtgärder i städning:**
 
 - Kundnummer görs till heltal genom att först ta bort "C".
-- Vid NaN: BMI och årliga besök får median insatt, träningsnivå får "Unknown".
+- Vid NaN: BMI och årliga besök får median insatt.
 - Gör "Ja/Nej" till logisk.
 ```{r}
 source("script1_cleaning.R")
@@ -43,7 +43,7 @@ source("script1_cleaning.R")
 - Det görs även en lista med kategoriska kolumner (som är städade redan), sen en funktion som sätter _as.factor_, sen kallas den och skriver över resultatet till `df_clean`.
 ```{r}
 # Summary visar vanliga värden, så kan man välja numeriska gränser i kategori variabler.
-# summary(df_clean$bmi)  
+# summary(df_clean$bmi)
 source("script2_createVar_andFactor.R")
 glimpse(df_clean)
 ```
@@ -104,7 +104,7 @@ smoke_chron_plot
 
 Bland rökare, betalar kroniska mera, samma gäller icke-rökare. Samtidigt är rökande status led till högre betalning också. Är profilen ej rökande eller kronisk så betalar denna ungefär hälften eller en tredjedel av de andra profilerna.
 
-I helhet tycks ålder eller vikt inte driva skillnader i betalning mest, utan övriga faktorer såsom rökare och kroniska, där differenser i pris är framstående. Vad som antyds är att rökning kanske är en kritisk risk som bör rättfärdiga en högre försäkringskostnad; denna och övriga faktorer gås igenom i regressionsanalysen.
+I helhet tycks ålder eller vikt inte driva skillnader i betalning mest, utan övriga faktorer såsom rökare och kroniska, där differenser i pris är framstående. Vad som antyds är att rökning är en kritisk risk som bör rättfärdiga en högre försäkringskostnad. Rökning och övriga faktorer gås igenom i regressionsanalysen.
 
 
 
@@ -115,7 +115,7 @@ Vilka features som leder mest till prissättningarna ska nu fokuseras på. I ini
 
 ### 4.1 Hypotestest
 
-Om binära variabler har stor påverkan på pris var för sig, så kan p-värde och konfidensintervall indikera viktigheten i tvåsticksprov Welch t-test. ANOVA hanterar ickebinära och görs inte i detta arbetet. T-testets isolerande prövning blir uppföljt av multipel regression efteråt vilket fångar variablernas samspel.
+Om binära och numeriska variabler har stor påverkan på pris var för sig, så kan p-värde och konfidensintervall indikera viktigheten i tvåsticksprov Welch t-test. ANOVA hanterar ickebinära och görs inte i detta arbetet. T-testets isolerande prövning blir uppföljt av multipel regression efteråt vilket fångar variablernas samspel.
 ```{r} 
 # Välj rökare, kroniska, hälsovanor och risknivå-variablerna, då de kan vara hälsokritiska.
 
@@ -124,39 +124,59 @@ t_test_chronic <- t.test(charges ~ chronic_condition, data = df_clean)
 t_test_exerciseschecks <- t.test(charges ~ exercises_checks, data = df_clean)
 t_test_risklevel <- t.test(charges ~ risk_level, data = df_clean)
 
-# t_test_smoker
+t_test_smoker
 # t_test_chronic
 # t_test_exerciseschecks
-t_test_risklevel
+# t_test_risklevel
 ```
 **t-test resultat:**
 
-| Variabel        | 95% konfidensintervall      | Effekt   |
-|-------------------|-----------------|---------|
-| `smoker`              | (-8514, -7387) | Rökare betalar mer |
-| `chronic_condition`   | (-5231, -4057) | Kroniskt drabbade betalar mer |
-| `exercises_checks`  | (-2141, -893)  | Mindre hälsosamma betalar mer |
-| `risk_level`          | (4801, 5654)   | Högriskkunder betalar mer |
+| Variabel        | t-värde   |95% konfidensintervall      | Effekt   |
+|-------------------|------|--------------|---------|
+| `smoker`              | -27.7 | (-8514, -7387) | Rökare betalar mer |
+| `chronic_condition`   | -15.5 | (-5231, -4057) | Kroniskt drabbade betalar mer |
+| `exercises_checks`  | -4.8  | (-2141, -893)  | Mindre hälsosamma betalar mer |
+| `risk_level`          | 24.1 | (4801, 5654)   | Högriskkunder betalar mer |
 
-Notera att ordningen på true och false orsakar minustecknet, medan effekten beskriver ordningen. Siffran noll var inte med i konfidensintervallen, och så var _p_ < 0.001 i alla granskningar, alltså statistiskt signifikant. 
+Notera att ordningen på true och false orsakar minustecknet, medan effekten beskriver ordningen. Siffran noll var inte med i konfidensintervallen, och så var _p_ < 0.001 i alla granskningar; statistiskt signifikant. 
 
 Framträdelsevis är `smoker` den status som leder till störst betalningsskillnad, sett i magnituden av intervallet. Sen följer av kronisk, risknivå (vilken består av bl.a. rökare och kronisk) och sist hälsovanor. Hälsovanor kan tolkas vara kompletterande för hälsan, medan status av rökning och kronisk har större avgörande (och därmed borde tas med i regressionen).
 
 
 ### 4.2 Modellering
+Vi gör två modeller (en med orginella variabler och en med anpassade) och undersöker resultaten om pris följer räta förhållanden. Variabeln `risk_level` är gjord med bmi, rök- och kronisk-status, så den tas inte med för multikolineäritet riskerar skeva resultaten.
+
 ```{r}
-source("script4_regression.R") # TO DO
+# Modell 1, med age, bmi, smoker och kronisk.
+model1 <- lm(charges ~ age + bmi + smoker + chronic_condition, data = df_clean)
+summary(model1)
 ```
 
+Modell 1 har $R^2$ á 69%, _p_ < 0.001, och residual standardfel: 2550. De fyra koefficienterna har _p_ < 0.001.
+
+En negativ intercept när features sätts till noll (modell 1) beror på matematiskt fungerande, rimliga datapunkter för prediktioner t.ex bmi > 0 är antaget.
+
+
+```{r}
+# Modell 2, med skapta variabler (ej risk_level)
+model2 <- lm(charges ~ age_group + bmi_class + plan_type +
+               historic_score + exercises_checks, data = df_clean)
+summary(model2)
+levels(df_clean$age_group) # första värdet är referenspunkten för koefficienter.
+levels(df_clean$bmi_class) # referenspunkterna: normal bmi, junior åldersgrupp.
+```
+Modell 2 har lägre $R^2$ á 16.9%, _p_ < 0.001, och högre residual standardfel: 4171, sämre predikerandes. Senior, intercept, historik, premium samt standard plan har _p_ < 0.001. Senior har 3908 kr ökning ifrån Junior.
+
+Mindre förklarad varians hos den andra modellen föreslår att kategoriserande får precision att tappa, medan förklarbarhet med kategorier ökar i affärsnära nyttjande (och betalningsplan har i verklighet prisskillnader). Hur gränserna är dragna vid kategoriskapandet är avgörande, de var improviserade och osannolikt optimala, vilket regressionen framhäver. Segment kan bära fördel i affärsliv, men dessa kontinuerliga variabler ledde inte till en mer precis statistisk modell. 
 
 
 
-
-
-
-
-
-
+```{r}
+#           GÖRA REG GRAF.. + RESIDUALPLOT??
+# source("script5_regression.R")
+#           +  isf lägg till i METOD textrapp
+#           + i resultat.. + i diskussion..
+```
 
 
 

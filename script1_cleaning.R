@@ -33,7 +33,6 @@ df_clean <- df %>%
     exercise_level = str_trim(exercise_level),
     exercise_level = str_to_lower(exercise_level),
     exercise_level = str_to_title(exercise_level),
-    exercise_level = replace_na(exercise_level, "Unknown"),
     
     plan_type = str_trim(plan_type),
     plan_type = str_to_lower(plan_type),
