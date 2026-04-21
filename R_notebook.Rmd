@@ -21,18 +21,18 @@ Det är 1,100 observationer med 14 variabler, och datatyperna ska justeras:
 **Se närmare på kolumner med saknade värden:**
 ```{r}
 # Antal NA per kolumn:
-# colSums(is.na(df)) 
+# colSums(is.na(df_clean))
 #     anger att: bmi, exercise_level, annual_checkups har NaN.
 
 # Se över unique values i olika kolumner:
-# count(df$exercise_level)
+# unique(df$exercise_level)
 unique(df$plan_type)
 ```
 ## 2. Datastädning och förberedelse
 **Åtgärder i städning:**
 
 - Kundnummer görs till heltal genom att först ta bort "C".
-- Vid NaN: BMI och årliga besök får median insatt.
+- Vid NaN: BMI och årliga besök får median insatt, och träningsnivå får `unknown`.
 - Gör "Ja/Nej" till logisk.
 ```{r}
 source("script1_cleaning.R")
@@ -154,7 +154,7 @@ summary(model1)
 
 Modell 1 har $R^2$ á 69%, _p_ < 0.001, och residual standardfel: 2550. De fyra koefficienterna har _p_ < 0.001.
 
-En negativ intercept när features sätts till noll (modell 1) beror på matematiskt fungerande, rimliga datapunkter för prediktioner t.ex bmi > 0 är antaget.
+En negativ intercept när features antas vara noll (modell 1) beror på matematik, och basvärdet för kategorier är antagna.
 
 
 ```{r}
@@ -169,16 +169,35 @@ Modell 2 har lägre $R^2$ á 16.9%, _p_ < 0.001, och högre residual standardfel
 
 Mindre förklarad varians hos den andra modellen föreslår att kategoriserande får precision att tappa, medan förklarbarhet med kategorier ökar i affärsnära nyttjande (och betalningsplan har i verklighet prisskillnader). Hur gränserna är dragna vid kategoriskapandet är avgörande, de var improviserade och osannolikt optimala, vilket regressionen framhäver. Segment kan bära fördel i affärsliv, men dessa kontinuerliga variabler ledde inte till en mer precis statistisk modell. 
 
+### 4.3 Felanalys
+```{r}
+# Gör regressions- och residualgrafer
+source("script5_regression.R")
 
+# 2 modellers faktiska och predikerade priser
+regplot
+```
+Modell 1 visar mer närhet till _1:1 linjen_, medan modell 2 har större kluster under linjen.
 
 ```{r}
-#           GÖRA REG GRAF.. + RESIDUALPLOT??
-# source("script5_regression.R")
-#           +  isf lägg till i METOD textrapp
-#           + i resultat.. + i diskussion..
+# Residualgraf
+errplot
 ```
+Residualer ligger balanserat över och under 0-linjen för modell 1, medan modell 2 har större spridning av fel och kluster under linjen.
 
+```{r}
+# QQplot modell 1
+qqnorm(resid(model1))
+qqline(resid(model1), col = "red")
+```
+Första modellen har punkter nära referenslinjen för mestadelen, med lite flera uppgående outliers i höger.
 
+```{r}
+# QQplot modell 2
+qqnorm(resid(model2))
+qqline(resid(model2), col = "red")
+```
+Andra modellen avviker mer från normalfördelning till vänster och höger med synlig skevhet.
 
 
 
