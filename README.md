@@ -38,7 +38,7 @@ Projektet jämför två angreppssätt för att förutsäga kostnader (`charges`)
 
 **Prisutveckling per kategori**: åldersgrupper, BMI-klasser och rökning/sjukdomshistorik.
 
-![Kategoriplots](plots/betalning bland grupper.png)
+![Kategoriplots](plots/betalning%20bland%20grupper.png)
 
 **Hypotestester**: t-test för att undersöka statistiskt signifikanta skillnader mellan grupper.
 
