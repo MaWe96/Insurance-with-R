@@ -42,7 +42,12 @@ Projektet jämför två angreppssätt för att förutsäga kostnader (`charges`)
 
 **Hypotestester**: t-test för att undersöka statistiskt signifikanta skillnader mellan grupper.
 
-![T-test resultat](plots/t-test.png)
+| Variabel | 95% CI | Effekt |
+|---|---|---|
+| smoker | (-8514, -7387) | Rökare betalar mer |
+| chronic_condition | (-5231, -4057) | Kroniskt drabbade betalar mer |
+| exercises_checks | (-2141, -893) | Mindre hälsosamma betalar mer |
+| risk_level | (4801, 5654) | Högriskkunder betalar mer |
 
 **Regressionsdiagnostik**: faktiskt vs. predikerat pris samt residualspridning för båda modellerna.
 
